@@ -172,6 +172,7 @@ print(tensor_back_on_cpu)
 # Workflow #
 # Workflow #
 
+# Initialization #
 weight = 0.7
 bias = 0.3
 start = 0
@@ -183,7 +184,9 @@ print(x[:10], y[:10])
 train_split = int(0.8 * len(x))
 x_train, y_train, x_test, y_test = x[:train_split], y[:train_split], x[train_split:], y[train_split:]
 print(len(x_train), len(y_train), len(x_test), len(y_test))
+##################
 
+# Visualization #
 def plot_predictions(train_data=x_train, 
                      train_labels=y_train, 
                      test_data=x_test, 
@@ -197,9 +200,10 @@ def plot_predictions(train_data=x_train,
 		plt.scatter(test_data, predictions, c="r", s=4, label="Predictions")
 	plt.legend(prop={"size": 14})
 	plt.show()
-
 #plot_predictions()
+#################
 
+# Class definition #
 class LinearRegressionModel(torch.nn.Module):
 
     def __init__(self):
@@ -210,6 +214,16 @@ class LinearRegressionModel(torch.nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.weights * x + self.bias
 
+####################
+# every model must be a subclass of nn.Module #
+# initialize weight and bias #
+# nn.Parameter accepts tensors that are stored by nn.Module #
+# every model must have a forward method which does the computation #
+# will accept and return tensor type only #
+####################
+
+# time pass but required #
+# or predicting as well #
 torch.manual_seed(42)
 model_0 = LinearRegressionModel()
 print(list(model_0.parameters()))
@@ -225,7 +239,9 @@ print(f"Predicted values:\n{y_preds}")
 plot_predictions(predictions=y_preds)
 loss_fn = torch.nn.L1Loss()
 optimizer = torch.optim.SGD(params=model_0.parameters(),lr=0.01)
+##########################
 
+# training #
 torch.manual_seed(42)
 epochs = 100
 train_loss_values = []
@@ -262,7 +278,9 @@ print("The model learned the following values for weights and bias:")
 print(model_0.state_dict())
 print("\nAnd the original values for weights and bias are:")
 print(f"weights: {weight}, bias: {bias}")
+############
 
+# Saving and loading #
 model_path = Path("models")
 model_path.mkdir(parents = True, exist_ok = True)
 model_name = "pytorch_workflow.pth"
@@ -277,11 +295,14 @@ loaded_model_0.eval()
 with torch.inference_mode():
 	loaded_model_pred = loaded_model_0(x_test)
 print(test_pred == loaded_model_pred)
+######################
 
+# cuda #
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
+########
 
-
+# repeatu #
 weight = 0.7
 bias = 0.3
 start = 0
@@ -324,7 +345,12 @@ torch.manual_seed(42)
 model_1 = LinearRegressionModel()
 print(model_1, model_1.state_dict())
 print(next(model_1.parameters()).device)
+
+# GPU #
+# GPU #
 model_1.to(device)
+#######
+#######
 
 loss_fn = torch.nn.L1Loss()
 optimizer = torch.optim.SGD(params=model_1.parameters(), lr=0.01)
@@ -373,3 +399,4 @@ loaded_model_1.eval()
 with torch.inference_mode():
     loaded_model_1_preds = loaded_model_1(x_test)
 print(y_preds == loaded_model_1_preds)
+###########
