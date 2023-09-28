@@ -2,6 +2,15 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+from sklearn.datasets import make_circles
+from sklearn.datasets import make_blobs
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import requests
+from torchmetrics import Accuracy
+import torchvision
+from torchvision.transforms import ToTensor
 
 
 ## Version ##
@@ -200,6 +209,31 @@ def plot_predictions(train_data=x_train,
 		plt.scatter(test_data, predictions, c="r", s=4, label="Predictions")
 	plt.legend(prop={"size": 14})
 	plt.show()
+
+def accuracy_fn(y_true, y_pred):
+    correct = torch.eq(y_true, y_pred).sum().item() # torch.eq() calculates where two tensors are equal
+    acc = (correct / len(y_pred)) * 100 
+    return acc
+
+def plot_decision_boundary(model: torch.nn.Module, X: torch.Tensor, y: torch.Tensor):
+    model.to("cpu")
+    X, y = X.to("cpu"), y.to("cpu")
+    x_min, x_max = X[:, 0].min() - 0.1, X[:, 0].max() + 0.1
+    y_min, y_max = X[:, 1].min() - 0.1, X[:, 1].max() + 0.1
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 101), np.linspace(y_min, y_max, 101))
+    X_to_pred_on = torch.from_numpy(np.column_stack((xx.ravel(), yy.ravel()))).float()
+    model.eval()
+    with torch.inference_mode():
+        y_logits = model(X_to_pred_on)
+    if len(torch.unique(y)) > 2:
+        y_pred = torch.softmax(y_logits, dim=1).argmax(dim=1)
+    else:
+        y_pred = torch.round(torch.sigmoid(y_logits))
+    y_pred = y_pred.reshape(xx.shape).detach().numpy()
+    plt.contourf(xx, yy, y_pred, cmap=plt.cm.RdYlBu, alpha=0.7)
+    plt.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=plt.cm.RdYlBu)
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
 #plot_predictions()
 #################
 
@@ -316,21 +350,6 @@ print(x[:10], y[:10])
 train_split = int(0.8 * len(x))
 x_train, x_test, y_train, y_test = x[:train_split], x[train_split:], y[:train_split], y[train_split:]
 print(len(x_train), len(x_test), len(y_train), len(y_test))
-
-def plot_predictions(train_data=x_train, 
-                     train_labels=y_train, 
-                     test_data=x_test, 
-                     test_labels=y_test, 
-                     predictions=None):
-
-    plt.figure(figsize=(10, 7))
-    plt.scatter(train_data, train_labels, c="b", s=4, label="Training data")
-    plt.scatter(test_data, test_labels, c="g", s=4, label="Testing data")
-    if predictions is not None:
-        plt.scatter(test_data, predictions, c="r", s=4, label="Predictions")
-    plt.legend(prop={"size": 14})
-    plt.show()
-
 plot_predictions()
 
 class LinearRegressionModel(torch.nn.Module):
@@ -383,6 +402,7 @@ with torch.inference_mode():
     y_preds = model_1(x_test)
 plot_predictions(predictions=y_preds.cpu())
 
+# Load and save model #
 MODEL_PATH = Path("models")
 MODEL_PATH.mkdir(parents=True, exist_ok=True)
 MODEL_NAME = "01_pytorch_workflow_model_1.pth"
@@ -399,4 +419,266 @@ loaded_model_1.eval()
 with torch.inference_mode():
     loaded_model_1_preds = loaded_model_1(x_test)
 print(y_preds == loaded_model_1_preds)
+#######################
 ###########
+
+# Non-linear Datasets #
+n_samples = 1000
+x, y = make_circles(n_samples, noise = 0.03, random_state = 42)
+circles = pd.DataFrame({"x1" : x[:, 0],
+                        "x2" : x[:, 1],
+                        "label" : y})
+plt.scatter(x = x[:, 0],
+            y = x[:, 1],
+            c = y,
+            cmap = plt.cm.RdYlBu)
+x = torch.from_numpy(x).type(torch.float)
+y = torch.from_numpy(y).type(torch.float)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.1, random_state = 42)
+
+# Model #
+class CircleModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer_1 = torch.nn.Linear(in_features = 2, out_features = 5)
+        self.layer_2 = torch.nn.Linear(in_features = 5, out_features = 1)
+
+    def forward(self, x):
+        return self.layer_2(self.layer_1(x))
+#########
+
+# Very Good Practise #
+# Very Good Practise #
+model_0 = CircleModel().to(device)
+untrained_preds = model_0(x_test.to(device))
+loss_fn = torch.nn.BCEWithLogitsLoss()
+optimizer = torch.optim.SGD(params = model_0.parameters(), lr = 0.1)
+
+y_logits = model_0(x_test.to(device))[:5]
+print(y_logits)
+y_pred_probs = torch.sigmoid(y_logits)
+print(y_pred_probs)
+y_preds = torch.round(y_pred_probs)
+y_pred_labels = torch.round(torch.sigmoid(model_0(x_test.to(device))[:5]))
+print(torch.eq(y_preds.squeeze(), y_pred_labels.squeeze()))
+print(y_preds.squeeze())
+######################
+######################
+
+# repeatu #
+torch.manual_seed(42)
+epochs = 100
+x_train, x_test, y_train, y_test = x_train.to(device), x_test.to(device), y_train.to(device), y_test.to(device)
+
+for epoch in range(epochs):
+    model_0.train()
+    y_logits = model_0(x_train).squeeze()
+    y_pred = torch.round(torch.sigmoid(y_logits))
+    loss = loss_fn(y_logits, y_train)
+    acc = accuracy_fn(y_train, y_pred)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    model_0.eval()
+    with torch.inference_mode():
+        test_logits = model_0(x_test).squeeze()
+        test_pred = torch.round(torch.sigmoid(test_logits))
+        test_loss = loss_fn(test_logits, y_test)
+        test_acc = accuracy_fn(y_test, test_pred)
+    if epoch % 10 == 0:
+        print(f"Epochs : {epoch} | Loss : {loss:.5f}, Accuracy : {acc:.2f}% | Test loss : {test_loss:.5f}, Test acc : {test_acc:.2f}%")
+
+plt.figure(figsize = (12, 6))
+plt.subplot(1, 2, 1)
+plt.title("Train")
+plot_decision_boundary(model_0, x_train, y_train)
+plt.subplot(1, 2, 2)
+plt.title("Test")
+plot_decision_boundary(model_0, x_test, y_test)
+plt.show()
+# repeatu #
+
+# Model #
+class Circle_Model(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer_1 = torch.nn.Linear(in_features = 2, out_features = 10)
+        self.layer_2 = torch.nn.Linear(in_features = 10, out_features = 10)
+        self.layer_3 = torch.nn.Linear(in_features = 10, out_features = 1)
+
+    def forward(self, x):
+        return self.layer_3(self.layer_2(self.layer_1(x)))
+
+model_1 = Circle_Model().to(device)
+print(model_1)
+loss_fn = torch.nn.BCEWithLogitsLoss()
+optimizer = torch.optim.SGD(model_1.parameters(), lr = 0.1)
+#########
+
+# repeatu #
+torch.manual_seed(42)
+epochs = 1000
+x_train, x_test, y_train, y_test = x_train.to(device), x_test.to(device), y_train.to(device), y_test.to(device)
+
+for epoch in range(epochs):
+    model_1.train()
+    y_logits = model_1(x_train).squeeze()
+    y_pred = torch.round(torch.sigmoid(y_logits))
+    loss = loss_fn(y_logits, y_train)
+    acc = accuracy_fn(y_train, y_pred)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    model_1.eval()
+    with torch.inference_mode():
+        test_logits = model_1(x_test).squeeze()
+        test_pred = torch.round(torch.sigmoid(test_logits))
+        test_loss = loss_fn(test_logits, y_test)
+        test_acc = accuracy_fn(y_test, test_pred)
+    if epoch % 100 == 0:
+        print(f"Epochs : {epoch} | Loss : {loss:.5f}, Accuracy : {acc:.2f}% | Test loss : {test_loss:.5f}, Test acc : {test_acc:.2f}%")
+
+plt.figure(figsize = (12, 6))
+plt.subplot(1, 2, 1)
+plt.title("Train")
+plot_decision_boundary(model_1, x_train, y_train)
+plt.subplot(1, 2, 2)
+plt.title("Test")
+plot_decision_boundary(model_1, x_test, y_test)
+plt.show()
+###########
+
+# Model #
+class Circle_Model_(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer_1 = torch.nn.Linear(in_features = 2, out_features = 10)
+        self.layer_2 = torch.nn.Linear(in_features = 10, out_features = 10)
+        self.layer_3 = torch.nn.Linear(in_features = 10, out_features = 1)
+        self.relu = torch.nn.ReLU()
+
+    def forward(self, x):
+        return self.layer_3(self.relu(self.layer_2(self.layer_1(x))))
+
+model_2 = Circle_Model_().to(device)
+print(model_2)
+#########
+
+# repeatu #
+loss_fn = torch.nn.BCEWithLogitsLoss()
+optimizer = torch.optim.SGD(model_2.parameters(), lr = 0.1)
+
+for epoch in range(epochs):
+    model_2.train()
+    y_logits = model_2(x_train).squeeze()
+    y_pred = torch.round(torch.sigmoid(y_logits))
+    loss = loss_fn(y_logits, y_train)
+    acc = accuracy_fn(y_train, y_pred)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    model_2.eval()
+    with torch.inference_mode():
+        test_logits = model_2(x_test).squeeze()
+        test_pred = torch.round(torch.sigmoid(test_logits))
+        test_loss = loss_fn(test_logits, y_test)
+        test_acc = accuracy_fn(y_test, test_pred)
+    if epoch % 100 == 0:
+        print(f"Epochs : {epoch} | Loss : {loss:.5f}, Accuracy : {acc:.2f}% | Test loss : {test_loss:.5f}, Test acc : {test_acc:.2f}%")
+
+model_2.eval()
+with torch.inference_mode():
+    y_preds = torch.round(torch.sigmoid(model_2(x_test))).squeeze()
+print(y_preds[: 10], y[: 10])
+
+plt.figure(figsize = (12, 6))
+plt.subplot(1, 2, 1)
+plt.title("Train")
+plot_decision_boundary(model_2, x_train, y_train)
+plt.subplot(1, 2, 2)
+plt.title("Test")
+plot_decision_boundary(model_2, x_test, y_test)
+plt.show()
+###########
+#######################
+
+# Multi-class Classification #
+num_classes = 4 
+num_features = 2 
+random_seed = 42
+
+# Dataset #
+x_blob, y_blob = make_blobs(n_samples = 1000, n_features = num_features, centers = num_classes,
+                            cluster_std = 1.5, random_state = random_seed)
+x_blob = torch.from_numpy(x_blob).type(torch.float)
+y_blob = torch.from_numpy(y_blob).type(torch.LongTensor)
+x_train, x_test, y_train, y_test = train_test_split(x_blob, y_blob, test_size = 0.2, random_state = 42)
+plt.figure(figsize = (10, 7))
+plt.scatter(x_blob[:, 0], x_blob[:, 1], c = y_blob, cmap = plt.cm.RdYlBu)
+plt.show()
+###########
+
+# Model #
+class Blob(torch.nn.Module):
+    def __init__(self, input_features, output_features, hidden_units = 8):
+        super().__init__()
+        self.linear_layer_stack = torch.nn.Sequential(torch.nn.Linear(in_features = input_features, out_features = hidden_units),
+                                                # torch.nn.ReLU(),
+                                                torch.nn.Linear(in_features = hidden_units, out_features = hidden_units),
+                                                # torch.nn.ReLU(),
+                                                torch.nn.Linear(in_features = hidden_units, out_features = output_features))
+
+    def forward(self, x):
+        return self.linear_layer_stack(x)
+
+model_3 = Blob(input_features = num_features, output_features = num_classes).to(device)
+print(model_3)
+
+loss_fn = torch.nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model_3.parameters(), lr = 0.1)
+print(model_3(x_train.to(device))[: 5])
+#########
+
+# repeatu #
+torch.manual_seed(42)
+epochs = 100
+x_train, y_train = x_train.to(device), y_train.to(device)
+x_test, y_test = x_test.to(device), y_test.to(device)
+
+for epoch in range(epochs):
+    model_3.train()
+    y_logits = model_3(x_train)
+    y_pred = torch.softmax(y_logits, dim = 1).argmax(dim = 1)
+    loss = loss_fn(y_logits, y_train)
+    acc = accuracy_fn(y_true = y_train, y_pred = y_pred)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    model_3.eval()
+    with torch.inference_mode():
+        test_logits = model_3(x_test)
+        test_pred = torch.softmax(test_logits, dim = 1).argmax(dim = 1)
+        test_loss = loss_fn(test_logits, y_test)
+        test_acc = accuracy_fn(y_true = y_test, y_pred = test_pred)
+    if epoch % 10 == 0:
+        print(f"Epoch: {epoch} | Loss: {loss:.5f}, Acc: {acc:.2f}% | Test Loss: {test_loss:.5f}, Test Acc: {test_acc:.2f}%")
+
+model_3.eval()
+with torch.inference_mode():
+    y_logits = model_3(x_test)
+y_preds = torch.softmax(y_logits, dim = 1).argmax(dim = 1)
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.title("Train")
+plot_decision_boundary(model_3, x_train, y_train)
+plt.subplot(1, 2, 2)
+plt.title("Test")
+plot_decision_boundary(model_3, x_test, y_test)
+plt.show()
+###########
+##############################
+
+# Accuracy #
+acc = Accuracy(task = "multiclass", num_classes = 4).to(device)
+print(acc(y_preds, y_test))
+############
