@@ -208,7 +208,7 @@ def plot_predictions(train_data=x_train,
 	if predictions is not None:
 		plt.scatter(test_data, predictions, c="r", s=4, label="Predictions")
 	plt.legend(prop={"size": 14})
-	plt.show()
+	# plt.show()
 
 def accuracy_fn(y_true, y_pred):
     correct = torch.eq(y_true, y_pred).sum().item() # torch.eq() calculates where two tensors are equal
@@ -270,7 +270,7 @@ print(f"Number of testing samples: {len(x_test)}")
 print(f"Number of predictions made: {len(y_preds)}")
 print(f"Predicted values:\n{y_preds}")
 
-plot_predictions(predictions=y_preds)
+# plot_predictions(predictions=y_preds)
 loss_fn = torch.nn.L1Loss()
 optimizer = torch.optim.SGD(params=model_0.parameters(),lr=0.01)
 ##########################
@@ -300,13 +300,13 @@ for epoch in range(epochs):
             test_loss_values.append(test_loss.detach().numpy())
             print(f"Epoch: {epoch} | MAE Train Loss: {loss} | MAE Test Loss: {test_loss} ")
 
-plt.plot(epoch_count, train_loss_values, label="Train loss")
-plt.plot(epoch_count, test_loss_values, label="Test loss")
-plt.title("Training and test loss curves")
-plt.ylabel("Loss")
-plt.xlabel("Epochs")
-plt.legend()
-plt.show()
+# plt.plot(epoch_count, train_loss_values, label="Train loss")
+# plt.plot(epoch_count, test_loss_values, label="Test loss")
+# plt.title("Training and test loss curves")
+# plt.ylabel("Loss")
+# plt.xlabel("Epochs")
+# plt.legend()
+# plt.show()
 
 print("The model learned the following values for weights and bias:")
 print(model_0.state_dict())
@@ -350,7 +350,7 @@ print(x[:10], y[:10])
 train_split = int(0.8 * len(x))
 x_train, x_test, y_train, y_test = x[:train_split], x[train_split:], y[:train_split], y[train_split:]
 print(len(x_train), len(x_test), len(y_train), len(y_test))
-plot_predictions()
+# plot_predictions()
 
 class LinearRegressionModel(torch.nn.Module):
     def __init__(self):
@@ -400,7 +400,7 @@ for epoch in range(epochs):
 model_1.eval()
 with torch.inference_mode():
     y_preds = model_1(x_test)
-plot_predictions(predictions=y_preds.cpu())
+# plot_predictions(predictions=y_preds.cpu())
 
 # Load and save model #
 MODEL_PATH = Path("models")
@@ -428,10 +428,10 @@ x, y = make_circles(n_samples, noise = 0.03, random_state = 42)
 circles = pd.DataFrame({"x1" : x[:, 0],
                         "x2" : x[:, 1],
                         "label" : y})
-plt.scatter(x = x[:, 0],
-            y = x[:, 1],
-            c = y,
-            cmap = plt.cm.RdYlBu)
+# plt.scatter(x = x[:, 0],
+#             y = x[:, 1],
+#             c = y,
+#             cmap = plt.cm.RdYlBu)
 x = torch.from_numpy(x).type(torch.float)
 y = torch.from_numpy(y).type(torch.float)
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.1, random_state = 42)
@@ -488,15 +488,15 @@ for epoch in range(epochs):
     if epoch % 10 == 0:
         print(f"Epochs : {epoch} | Loss : {loss:.5f}, Accuracy : {acc:.2f}% | Test loss : {test_loss:.5f}, Test acc : {test_acc:.2f}%")
 
-plt.figure(figsize = (12, 6))
-plt.subplot(1, 2, 1)
-plt.title("Train")
-plot_decision_boundary(model_0, x_train, y_train)
-plt.subplot(1, 2, 2)
-plt.title("Test")
-plot_decision_boundary(model_0, x_test, y_test)
-plt.show()
-# repeatu #
+# plt.figure(figsize = (12, 6))
+# plt.subplot(1, 2, 1)
+# plt.title("Train")
+# plot_decision_boundary(model_0, x_train, y_train)
+# plt.subplot(1, 2, 2)
+# plt.title("Test")
+# plot_decision_boundary(model_0, x_test, y_test)
+# plt.show()
+###########
 
 # Model #
 class Circle_Model(torch.nn.Module):
@@ -538,14 +538,14 @@ for epoch in range(epochs):
     if epoch % 100 == 0:
         print(f"Epochs : {epoch} | Loss : {loss:.5f}, Accuracy : {acc:.2f}% | Test loss : {test_loss:.5f}, Test acc : {test_acc:.2f}%")
 
-plt.figure(figsize = (12, 6))
-plt.subplot(1, 2, 1)
-plt.title("Train")
-plot_decision_boundary(model_1, x_train, y_train)
-plt.subplot(1, 2, 2)
-plt.title("Test")
-plot_decision_boundary(model_1, x_test, y_test)
-plt.show()
+# plt.figure(figsize = (12, 6))
+# plt.subplot(1, 2, 1)
+# plt.title("Train")
+# plot_decision_boundary(model_1, x_train, y_train)
+# plt.subplot(1, 2, 2)
+# plt.title("Test")
+# plot_decision_boundary(model_1, x_test, y_test)
+# plt.show()
 ###########
 
 # Model #
@@ -591,14 +591,14 @@ with torch.inference_mode():
     y_preds = torch.round(torch.sigmoid(model_2(x_test))).squeeze()
 print(y_preds[: 10], y[: 10])
 
-plt.figure(figsize = (12, 6))
-plt.subplot(1, 2, 1)
-plt.title("Train")
-plot_decision_boundary(model_2, x_train, y_train)
-plt.subplot(1, 2, 2)
-plt.title("Test")
-plot_decision_boundary(model_2, x_test, y_test)
-plt.show()
+# plt.figure(figsize = (12, 6))
+# plt.subplot(1, 2, 1)
+# plt.title("Train")
+# plot_decision_boundary(model_2, x_train, y_train)
+# plt.subplot(1, 2, 2)
+# plt.title("Test")
+# plot_decision_boundary(model_2, x_test, y_test)
+# plt.show()
 ###########
 #######################
 
@@ -613,9 +613,9 @@ x_blob, y_blob = make_blobs(n_samples = 1000, n_features = num_features, centers
 x_blob = torch.from_numpy(x_blob).type(torch.float)
 y_blob = torch.from_numpy(y_blob).type(torch.LongTensor)
 x_train, x_test, y_train, y_test = train_test_split(x_blob, y_blob, test_size = 0.2, random_state = 42)
-plt.figure(figsize = (10, 7))
-plt.scatter(x_blob[:, 0], x_blob[:, 1], c = y_blob, cmap = plt.cm.RdYlBu)
-plt.show()
+# plt.figure(figsize = (10, 7))
+# plt.scatter(x_blob[:, 0], x_blob[:, 1], c = y_blob, cmap = plt.cm.RdYlBu)
+# plt.show()
 ###########
 
 # Model #
@@ -667,14 +667,14 @@ model_3.eval()
 with torch.inference_mode():
     y_logits = model_3(x_test)
 y_preds = torch.softmax(y_logits, dim = 1).argmax(dim = 1)
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-plt.title("Train")
-plot_decision_boundary(model_3, x_train, y_train)
-plt.subplot(1, 2, 2)
-plt.title("Test")
-plot_decision_boundary(model_3, x_test, y_test)
-plt.show()
+# plt.figure(figsize=(12, 6))
+# plt.subplot(1, 2, 1)
+# plt.title("Train")
+# plot_decision_boundary(model_3, x_train, y_train)
+# plt.subplot(1, 2, 2)
+# plt.title("Test")
+# plot_decision_boundary(model_3, x_test, y_test)
+# plt.show()
 ###########
 ##############################
 
@@ -682,3 +682,34 @@ plt.show()
 acc = Accuracy(task = "multiclass", num_classes = 4).to(device)
 print(acc(y_preds, y_test))
 ############
+
+# Images #
+# Dataset #
+train = torchvision.datasets.FashionMNIST(root = "data", train = True, download = True, transform = ToTensor(), target_transform = None)
+test = torchvision.datasets.FashionMNIST(root = "data", train = False, download = True, transform = ToTensor())
+image, label = train[0]
+print(image, label)
+print(image.shape)
+print(len(train.data), len(train.targets), len(test.data), len(test.targets))
+class_names = train.classes
+print(class_names)
+###########
+
+# Visualisation #
+image, label = train[0]
+print(f"Image shape: {image.shape}")
+# plt.imshow(image.squeeze())
+# plt.title(label)
+# plt.show()
+torch.manual_seed(42)
+fig = plt.figure(figsize = (9, 9))
+rows, cols = 4, 4
+
+for i in range(1, rows * cols + 1):
+    random_idx = torch.randint(0, len(train), size = [1]).item()
+    img, label = train[random_idx]
+    fig.add_subplot(rows, cols, i)
+    plt.imshow(img.squeeze(), cmap = "gray")
+    plt.title(class_names[label])
+    plt.axis(False)
+plt.show()
